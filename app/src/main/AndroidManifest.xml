@@ -1,6 +1,28 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <!-- WAKE LOCK - da se telefon probudi iz sleep moda -->
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <!-- EXACT ALARMS - precizno tajmiranje, OBAVEZNO za timer -->
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+    <!-- VIBRATION -->
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <!-- NOTIFICATIONS - Android 13+ -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- FOREGROUND SERVICE - da app radi u pozadini -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <!-- FULL SCREEN INTENT - za lock screen notifikaciju -->
+    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
+    <!-- LOCK SCREEN -->
+    <uses-permission android:name="android.permission.DISABLE_KEYGUARD" />
+    <uses-permission android:name="android.permission.TURN_SCREEN_ON" />
+    <!-- RECEIVE BOOT - restart alarms after reboot -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <!-- REQUEST IGNORE BATTERY OPTIMIZATIONS - ključno za preciznost! -->
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+
     <application
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
@@ -20,10 +42,42 @@
             </intent-filter>
         </activity>
 
-        <!-- Receiver koji pusti zvuk kad istekne trenutni timer (radi i kad je ekran zakljucan) -->
+        <!-- Lock Screen Activity -->
+        <activity
+            android:name=".ui.LockScreenTimerActivity"
+            android:excludeFromRecents="true"
+            android:exported="false"
+            android:launchMode="singleInstance"
+            android:showOnLockScreen="true"
+            android:showWhenLocked="true"
+            android:turnScreenOn="true"
+            android:theme="@style/Theme.LockScreenTimer" />
+
+        <!-- Alarm Receiver -->
         <receiver
             android:name=".alarm.TimerAlarmReceiver"
             android:exported="false" />
+
+        <!-- Boot Receiver - restart alarms after phone reboot -->
+        <receiver
+            android:name=".alarm.BootReceiver"
+            android:exported="true">
+            <intent-filter android:priority="999">
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.QUICKBOOT_POWERON" />
+            </intent-filter>
+        </receiver>
+
+        <!-- Foreground Service -->
+        <service
+            android:name=".service.TimerForegroundService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="timer" />
+        </service>
 
     </application>
 
