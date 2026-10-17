@@ -1,28 +1,41 @@
 package com.amar.minimaltimers.data
 
 import android.content.Context
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.decodeFromString
+import android.util.AtomicFile
+import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
 import java.io.File
+import java.io.FileNotFoundException
+import java.io.FileOutputStream
 
 class Storage(private val context: Context) {
     private val json = Json { ignoreUnknownKeys = true; prettyPrint = true }
     private val fileName = "minimal_timers_data.json"
+    private val serializer = ListSerializer(TimerPlan.serializer())
 
-    private fun file(): File = File(context.filesDir, fileName)
+    // AtomicFile: a crash/kill during save can no longer leave a half-written file
+    // (which used to make loadAll() return an empty list = all timers lost).
+    private fun file(): AtomicFile = AtomicFile(File(context.filesDir, fileName))
 
     fun loadAll(): List<TimerPlan> {
-        val f = file()
-        if (!f.exists()) return emptyList()
         return try {
-            json.decodeFromString(f.readText())
+            json.decodeFromString(serializer, String(file().readFully(), Charsets.UTF_8))
+        } catch (_: FileNotFoundException) {
+            emptyList()
         } catch (_: Exception) {
             emptyList()
         }
     }
 
     fun saveAll(plans: List<TimerPlan>) {
-        file().writeText(json.encodeToString(plans))
+        val f = file()
+        var out: FileOutputStream? = null
+        try {
+            out = f.startWrite()
+            out.write(json.encodeToString(serializer, plans).toByteArray(Charsets.UTF_8))
+            f.finishWrite(out)
+        } catch (e: Exception) {
+            out?.let { f.failWrite(it) }
+        }
     }
 }
